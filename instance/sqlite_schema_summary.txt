@@ -1,0 +1,31 @@
+
+
+TABLE: genes
+============
+
+CREATE statement:
+CREATE TABLE genes (
+	"Gene Symbol" TEXT, 
+	"Gene Description" TEXT, 
+	"Species" TEXT, 
+	"Neighbourdegree" BIGINT, 
+	"RPKM Value" FLOAT, 
+	"RPKM delta" FLOAT, 
+	"Detection on Protein Level?" BIGINT, 
+	"Is a Nonortholog?" BIGINT, 
+	"Type of Molecule" TEXT
+)
+
+
+TABLE: interactions
+===================
+
+CREATE statement:
+CREATE TABLE interactions (
+	"Gene Symbol 1" TEXT, 
+	"Gene Symbol 2" TEXT, 
+	"Predicted Interaction Score" FLOAT, 
+	"Is in Central Cascade?" BIGINT, 
+	"Species" TEXT
+)
+

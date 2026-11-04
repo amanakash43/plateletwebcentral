@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateletweb central</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="header">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo">
+            <h1>Plateletweb central - Systems Biology Workbench</h1>
+        </div>
+        <div class="user-info">
+            <span>Plateletweb</span>
+        </div>
+    </header>
+
+    <!-- Horizontal Navigation Bar -->
+    <nav class="nav-horizontal">
+        <ul>
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('central_cascade_page', species='H. sapiens') }}">Central Cascade for Humans</a></li>
+            <li><a href="{{ url_for('central_cascade_page', species='M. musculus') }}">Central Cascade for Mouse</a></li>
+            <li><a href="{{ url_for('network_extraction') }}">View Subnetwork</a></li>
+            <li><a href="{{ url_for('publications') }}">Publications</a></li>
+            <li><a href="#tutorial">Tutorial</a></li>
+            <li><a href="#contact">Contact</a></li>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="container">
+        <!-- Main Content Area -->
+    <div class="container">
+        <!-- Left Sidebar with Search -->
+        <aside class="sidebar">
+        <!-- first search plateletweb -->
+        <div class="search-section">
+            <h3>Search</h3>
+            <form method="GET" action="{{ url_for('legacy_search') }}" class="search-form legacy-search">
+                <input type="text" name="legacy" placeholder="Search plateletweb" />
+                <button type="submit">Search</button>
+            </form>
+        </div>
+
+        <!-- advanced search option -->
+        <div class="search-section">
+            <h3>Advanced Search</h3>
+            <form action=" {{ url_for('advanced_search') }} ">
+                <p style="font-size:10pt">Seach using protein identifiers and other characteristics.</p><br>
+                <button >🔍 Advanced Search</button>
+            </form>
+            </div>
+        <!-- then central cascade search -->
+        
+            <div class="search-section">
+                <h3>Central Cascade Search</h3>
+                <form method="POST">
+                    <input type="text" id = "gene_symbol" name="gene_symbol" placeholder="eg., VASP" value="{{ gene_symbol_query or '' }}" required>
+                    <!-- Adding species option -->
+                    <div>
+                    
+                        <b>Select Species:</b><br>
+                        {% for sp in species_options %}
+                            <label style="display: block;">
+                            <input
+                                type="checkbox"
+                                name="species_filter"
+                                value="{{ sp }}"
+                                {% if selected_species and sp in selected_species %}checked{% endif %}
+                            >
+                            {{ sp }}
+                            </label>
+                        {% endfor %}
+                        </div>
+                        <br>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </aside>
+        <main class="main-content">
+            <h2 class="highlight-header">Contact Information</h2><br>
+            <p style="justify-content: center;">If you any query or issues regarding 
+                Plateletweb central, you can mail us at aman.akash@uni-wuerzburg.de; johannes.balkenhol@uni-wuerzburg.de.</p><br>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateletweb central</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="header">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo">
+            <h1>Plateletweb central - Systems Biology Workbench</h1>
+        </div>
+        <div class="user-info">
+            <span>Plateletweb</span>
+        </div>
+    </header>
+
+    <!-- Horizontal Navigation Bar -->
+    <nav class="nav-horizontal">
+        <ul>
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('central_cascade_page', species='H. sapiens') }}">Central Cascade for Humans</a></li>
+            <li><a href="{{ url_for('central_cascade_page', species='M. musculus') }}">Central Cascade for Mouse</a></li>
+            <li><a href="{{ url_for('network_extraction') }}">View Subnetwork</a></li>
+            <li><a href="{{ url_for('publications') }}">Publications</a></li>
+            <li><a href="#tutorial">Tutorial</a></li>
+            <li><a href="#contact">Contact</a></li>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="container">
+        <!-- Main Content Area -->
+    <div class="container">
+        <!-- Left Sidebar with Search -->
+        <aside class="sidebar">
+        <!-- first search plateletweb -->
+        <div class="search-section">
+            <h3>Search</h3>
+            <form method="GET" action="{{ url_for('legacy_search') }}" class="search-form legacy-search">
+                <input type="text" name="legacy" placeholder="Search plateletweb" />
+                <button type="submit">Search</button>
+            </form>
+        </div>
+
+        <!-- advanced search option -->
+        <div class="search-section">
+            <h3>Advanced Search</h3>
+            <form action=" {{ url_for('advanced_search') }} ">
+                <p style="font-size:10pt">Seach using protein identifiers and other characteristics.</p><br>
+                <button >🔍 Advanced Search</button>
+            </form>
+            </div>
+        <!-- then central cascade search -->
+        
+            <div class="search-section">
+                <h3>Central Cascade Search</h3>
+                <form method="POST">
+                    <input type="text" id = "gene_symbol" name="gene_symbol" placeholder="eg., VASP" value="{{ gene_symbol_query or '' }}" required>
+                    <!-- Adding species option -->
+                    <div>
+                    
+                        <b>Select Species:</b><br>
+                        {% for sp in species_options %}
+                            <label style="display: block;">
+                            <input
+                                type="checkbox"
+                                name="species_filter"
+                                value="{{ sp }}"
+                                {% if selected_species and sp in selected_species %}checked{% endif %}
+                            >
+                            {{ sp }}
+                            </label>
+                        {% endfor %}
+                        </div>
+                        <br>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </aside>
+        <main class="main-content">
+                    
+                    <h1>Key Publications</h1>
+                    <br>
+                    <ul class="publications-list">
+                        <li><p>Balkenhol J, Kaltdorf KV, Mammadova-Bach E, Braun A, Nieswandt B, Dittrich M,
+                            Dandekar T. Comparison of the central human and mouse platelet signaling cascade
+                            by systems biological analysis. BMC Genomics. 2020 Dec 22;21(1):897.</p></li>
+                        <br>
+                            <li><p>Osmanoglu Ö, Özer E, Gupta SK, Heinze KG, Schulze H, Dandekar T. Network
+                            Controllability Reveals Key Mitigation Points for Tumor-Promoting Signaling in
+                            Tumor-Educated Platelets. Int J Mol Sci. 2025 Nov 5;26(21):10780. doi:
+                            10.3390/ijms262110780. PMID: 41226816; PMCID: PMC12609506.</p></li>
+                        <br>
+                            <li><p>Osmanoglu Ö, Gupta SK, Almasi A, Yagci S, Srivastava M, Araujo GHM, Nagy Z,
+                            Balkenhol J, Dandekar T. Signaling network analysis reveals fostamatinib as a
+                            potential drug to control platelet hyperactivation during SARS-CoV-2 infection.
+                            Front Immunol. 2023 Dec 21;14:1285345. doi: 10.3389/fimmu.2023.1285345. PMID:
+                            38187394; PMCID: PMC10768010.</p></li>
+                        <br>
+                        <li><p>Breitenbach T, Englert N, Osmanoglu Ö, Rukoyatkina N, Wangorsch G, Heinze K,
+                            Friebe A, Butt E, Feil R, Dittrich M, Gambaryan S, Dandekar T. A modular systems
+                            biological modelling framework studies cyclic nucleotide signaling in platelets.
+                            J Theor Biol. 2022 Oct 7;550:111222. doi: 10.1016/j.jtbi.2022.111222. Epub 2022
+                            Jul 16. PMID: 35843440.</p></li>
+                        <br>
+                        <li><p>Boyanova, D., Nilla, S., Birschmann, I., Dandekar, T. and Dittrich, M., 2012. 
+                            PlateletWeb: a systems biologic analysis of signaling networks in human platelets. 
+                            Blood, The Journal of the American Society of Hematology, 119(3), pp.e22-e34.</p></li>
+                        <br>
+                        <li><p>Dittrich, M., Birschmann, I., Mietner, S., Sickmann, A., Walter, U. and Dandekar, 
+                            T., 2008. Platelet protein interactions: map, signaling components, and phosphorylation 
+                            groundstate. Arteriosclerosis, thrombosis, and vascular biology, 28(7), pp.1326-1331.</p></li>
+                        <br>
+                        <li><p>Dittrich, M., Strassberger, V., Fackler, M., Tas, P., Lewandrowski, U., Sickmann, A., 
+                            Walter, U., Dandekar, T. and Birschmann, I., 2010. Characterization of a novel interaction 
+                            between vasodilator-stimulated phosphoprotein and Abelson interactor 1 in human platelets: 
+                            a concerted computational and experimental approach. Arteriosclerosis, thrombosis, and 
+                            vascular biology, 30(4), pp.843-850.</p></li>
+                        <br>    
+                        <li><p>Dittrich, M., Birschmann, I., Pfrang, J., Herterich, S., Smolenski, A., Walter, U. and 
+                            Dandekar, T., 2006. Analysis of SAGE data in human platelets: features of the transcriptome 
+                            in an anucleate cell. Thrombosis and haemostasis, 95(04), pp.643-651.</p></li>
+                        <br>        
+                        <li><p>Zahedi, R.P., Lewandrowski, U., Wiesner, J., Wortelkamp, S., Moebius, J., Schütz, C., 
+                            Walter, U., Gambaryan, S. and Sickmann, A., 2008. Phosphoproteome of resting human platelets. 
+                            Journal of proteome research, 7(2), pp.526-534.</p></li>
+                        <br>
+                        <li><p>Dittrich, M., Birschmann, I., Stuhlfelder, C., Sickmann, A., Herterich, S., Nieswandt, B., 
+                            Walter, U. and Dandekar, T., 2005. Understanding platelets. Thrombosis and haemostasis, 94(11), 
+                            pp.916-925.</p></li>
+                    </ul>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateletweb central</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="header">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo">
+            <h1>Plateletweb central - Systems Biology Workbench</h1>   
+        </div>
+        <div class="user-info">
+            <span><a href="https://plateletweb.bioapps.biozentrum.uni-wuerzburg.de/plateletweb.php" target="_blank">PlateletWeb OldS</a></span>
+        </div>
+    </header>
+
+    <!-- Horizontal Navigation Bar -->
+    <nav class="nav-horizontal">
+        <ul>
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('central_cascade_page', species='H. sapiens') }}">Central Cascade for Humans</a></li>
+            <li><a href="{{ url_for('central_cascade_page', species='M. musculus') }}">Central Cascade for Mouse</a></li>
+            <li><a href="{{ url_for('network_extraction') }}">View Subnetwork</a></li>
+            <li><a href="{{ url_for('publications') }}">Publications</a></li>
+            <li><a href="{{ url_for('tutorial') }}">Tutorial</a></li>
+            <li><a href="{{ url_for('contact') }}">Contact</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="container">
+        <!-- Left Sidebar with Search -->
+        <aside class="sidebar">
+        <!-- first search plateletweb -->
+        <div class="search-section">
+            <h3>Search</h3>
+            <form method="GET" action="{{ url_for('legacy_search') }}" class="search-form legacy-search">
+                <input type="text" name="legacy" placeholder="Search plateletweb" />
+                <button type="submit">Search</button>
+            </form>
+        </div>
+
+        <!-- advanced search option -->
+        <div class="search-section">
+            <h3>Advanced Search</h3>
+            <form action=" {{ url_for('advanced_search') }} ">
+                <p style="font-size:10pt">Seach using protein identifiers and other characteristics.</p><br>
+                <button >🔍 Advanced Search</button>
+            </form>
+            </div>
+        <!-- then central cascade search -->
+        
+            <div class="search-section">
+                <h3>Central Cascade Search</h3>
+                <form method="POST">
+                    <input type="text" id = "gene_symbol" name="gene_symbol" placeholder="eg., VASP" value="{{ gene_symbol_query or '' }}" required>
+                    <!-- Adding species option -->
+                    <div>
+                    
+                        <b>Select Species:</b><br>
+                        {% for sp in species_options %}
+                            <label style="display: block;">
+                            <input
+                                type="checkbox"
+                                name="species_filter"
+                                value="{{ sp }}"
+                                {% if selected_species and sp in selected_species %}checked{% endif %}
+                            >
+                            {{ sp }}
+                            </label>
+                        {% endfor %}
+                        </div>
+                        <br>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Breadcrumb Navigation -->
+            <div class="breadcrumb">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <span>/</span>
+                {% if gene_symbol_query %}
+                    <span>Search: {{ gene_symbol_query }}</span>
+                {% else %}
+                    <span>Current Page</span>
+                {% endif %}
+            </div>
+            
+            <!-- RESULTS VIEW -->
+            <div id="results-view">
+            {% if gene_symbol_query is not none %}
+                {% if results and results|length > 0 %}
+                    <div class="gene-results-header">
+                        <h2>Search results for "{{ gene_symbol_query }}"</h2>
+                    </div>
+
+                    {% for row in results %}
+                        {% set basic = row.basic_info %}
+                        {% set species_lower = basic.species|lower %}
+                        <section class="gene-result-card{% if 'musculus' in species_lower %} species-mouse{% endif %}">
+                            <h3 class="gene-result-card{% if 'musculus' in species_lower %} species-mouse{% endif %}">
+                                {{ basic.gene_symbol }} <span class="gene-species">- {{ basic.species }}</span>
+                            </h3>
+
+                            <!-- BASIC INFO GRID -->
+                            <div class="gene-info-grid">
+                                <div class="gene-info-item">
+                                    <div class="gene-info-label">Gene Symbol</div>
+                                    <div class="gene-info-value">{{ basic.gene_symbol }}</div>
+                                </div>
+                                <div class="gene-info-item">
+                                    <div class="gene-info-label">Species</div>
+                                    <div class="gene-info-value">{{ basic.species }}</div>
+                                </div>
+                                <div class="gene-info-item">
+                                    <div class="gene-info-label">Molecule Type</div>
+                                    <div class="gene-info-value">{{ basic.molecule_type }}</div>
+                                </div>
+                                <div class="gene-info-item">
+                                    <div class="gene-info-label">At Protein Level</div>
+                                    <div class="gene-info-value">
+                                        {% if basic.detection_protein == 1 %}
+                                            Yes
+                                        {% elif basic.detection_protein == 0 %}
+                                            No
+                                        {% else %}
+                                            {{ basic.detection_protein }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="gene-description-box">
+                                <div class="gene-info-label">Gene Description</div>
+                                <div class="gene-info-value">{{ basic.gene_description }}</div>
+                            </div>
+
+                            <!-- INTERACTION SECTION -->
+                            <div class="gene-section-header {% if 'musculus' in species_lower %} species-mouse{% endif %}">
+                                <h4>Interactions</h4>
+                            </div>
+                            
+                            <p class="gene-interaction-summary">
+                                Total interactions for this gene/species: 
+                                <span class="gene-count-badge">{{ row.interaction_count }}</span>
+                            <!-- Button to switch to network view -->
+                            <button
+                                class="btn-view-network"
+                                data-row-index="{{ loop.index0 }}"
+                                data-gene="{{ basic.gene_symbol }}"
+                                data-species="{{ basic.species }}">
+                                View interaction network
+                            </button></p>
+
+                            <!-- INTERACTIONS TABLE -->
+                            {% if row.interactions %}
+                                <div class="gene-table-wrapper">
+                                    <table class="gene-interactions-table {% if 'musculus' in species_lower %} species-mouse{% endif %}">
+                                        <thead>
+                                            <tr>
+                                                <th>Gene Symbol 1</th>
+                                                <th>Gene Symbol 2</th>
+                                                <th>Predicted Score</th>
+                                                <th>Interacting Molecule Type</th>
+                                                <th>Central Cascade</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for i in row.interactions %}
+                                                <!-- Figure out which gene is the partner of the searched gene -->
+                                                {% if i.gene_symbol_1 == basic.gene_symbol %}
+                                                    {% set partner_symbol = i.gene_symbol_2 %}
+                                                {% else %}
+                                                    {% set partner_symbol = i.gene_symbol_1 %}
+                                                {% endif %}
+
+                                                <!-- Look up BasicInfo for that partner symbol in the dict from Python -->
+                                                {% set partner = row.partner_info[partner_symbol] 
+                                                                if partner_symbol in row.partner_info 
+                                                                else None %}
+
+                                                <tr>
+                                                    <td class="gene-symbol-cell"><a href="https://plateletweb.bioapps.biozentrum.uni-wuerzburg.de/plateletweb.php?SearchTerm={{ i.gene_symbol_1 }}&content=proteins"
+                                                        target="_blank" rel="noopener noreferrer">{{ i.gene_symbol_1 }}</a></td>
+                                                    <td class="gene-symbol-cell"><a href="https://plateletweb.bioapps.biozentrum.uni-wuerzburg.de/plateletweb.php?SearchTerm={{ i.gene_symbol_2 }}&content=proteins"
+                                                        target="_blank" rel="noopener noreferrer">{{ i.gene_symbol_2 }}</a></td>
+                                                    <td>
+                                                        {% set score = i.predicted_score|float %}
+                                                        {% if score >= 0.7 %}
+                                                            <span class="gene-score-badge gene-score-high">{{ i.predicted_score }}</span>
+                                                        {% elif score >= 0.4 %}
+                                                            <span class="gene-score-badge gene-score-medium">{{ i.predicted_score }}</span>
+                                                        {% else %}
+                                                            <span class="gene-score-badge gene-score-low">{{ i.predicted_score }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="gene-symbol-cell">{% if partner %}
+                                                            {{ partner.molecule_type }}
+                                                        {% else %} n/a
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if i.is_in_central_cascade %}
+                                                            <span class="gene-cascade-badge-yes">✓ Yes</span>
+                                                        {% else %}
+                                                            <span class="gene-cascade-badge-no">✗ No</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <!-- END of table-->
+                                </div>
+                            {% else %}
+                                <div class="error-message">No interactions found for this gene/species.</div>
+                            {% endif %}
+                            
+                             <!-- Store network JSON for this row -->
+                            <script type="application/json" id="network-data-{{ loop.index0 }}">
+                                {{ row.network_elements | safe }}
+                            </script>
+                        </section>
+                    {% endfor %}       
+
+                {% else %}
+                    <!-- when no hit found -->
+					<div class="error-message">
+                    <h2>No hits found</h2>
+                    <p>
+                        No results for symbol "<strong>{{ gene_symbol_query }}</strong>"
+                        {% if selected_species and selected_species|length > 0 %}
+                            in selected species:
+                            <em>{{ selected_species|join(', ') }}</em>
+                        {% endif %}.
+                    </p></div>
+                {% endif %}
+                </div>
+
+                <!-- NETWORK VIEW, should be hidden -->
+                <div id="network-view" style="display:none;">
+                    <button id="back-to-results" class="btn-back">
+                        ← Back to results
+                    </button>
+                    <h2 id="network-title">Interaction network</h2>
+                    <div id="network-container" class="network-container"></div>
+                </div>
+            {% else %}
+                <!-- DEFAULT HOME VIEW -->
+                <div class="content-summary">
+                    <h2>Welcome to PlateletWeb Central</h2>
+                    <p>PlateletWeb provides a novel systems biology workbench for the analysis of platelet signaling in the functional 
+                        context of integrated networks. The database was established combining data from recent platelet proteome and 
+                        transcriptome (SAGE) studies with information on protein-protein interactions and kinase-substrate relationships 
+                        extracted from bioinformatical databases as well as published literature. The mass spectrometry-based platelet 
+                        phosphoproteome was combined with site-specific phosphorylation/ dephosphorylation information from the Human Protein 
+                        Database (HPRD), enhanced with data from PhosphoSite and complemented by bioinformatical sequence analysis for 
+                        -specific kinase predictions. The integration of annotations on kinases, protein domains, transmembrane regions, 
+                        Gene Ontology, disease associations and drug targets provides ample functional tools for platelet signaling analysis. 
+                        The use of graphical visualisation for specific subnetworks allows the investigation of major signaling modules 
+                        involved in platelet activation and inhibition. Through integration of various information sources and high curation 
+                        standards, PlateletWeb offers the systems biological background for investigation of signal transduction in human 
+                        platelets</p>
+                </div>
+
+                <!-- Hero Image -->
+                <img src="{{ url_for('static', filename='img/cascade-min.jpg') }}" alt="Central Platelet Cascade">
+                
+                <!-- Stats Section -->
+                <div class="stats-section">
+                    <div class="stat-box">
+                        <span class="number">Features</span>
+                        <p>Tabular view of search results.</p>
+                        <p>Species specific central cascade interactions.</p>
+                    </div>
+                    <div class="stat-box">
+                        <span class="number">Stats</span>
+                        <p>More than <b>7500</b> proteins. </p>
+                        <p>More than <b>15000</b> interactions.</p>
+                        
+                        <p>Based on <b>26</b> platelet studies.</p>
+                    </div>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <!-- JS -->
+    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const resultsView = document.getElementById("results-view");
+        const networkView = document.getElementById("network-view");
+        const backButton = document.getElementById("back-to-results");
+        const networkContainer = document.getElementById("network-container");
+        const networkTitle = document.getElementById("network-title");
+
+        // Click: show network for a given row
+        document.querySelectorAll(".btn-view-network").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                const idx = this.dataset.rowIndex;
+                const gene = this.dataset.gene;
+                const species = this.dataset.species;   // "H. sapien" or "M. musculus"
+
+                const dataScript = document.getElementById("network-data-" + idx);
+                if (!dataScript) return;
+
+                const elements = JSON.parse(dataScript.textContent);
+
+                // Update title
+                networkTitle.textContent = "Interaction network for " + gene + " (" + species + ")";
+
+                // Hide results, show network
+                resultsView.style.display = "none";
+                networkView.style.display = "block";
+
+                // Clear any previous graph
+                networkContainer.innerHTML = "";
+
+                // Decide node color based on species
+                const nodeColor =
+                    species === "H. sapiens"   ? "#3182ce" :   // blue
+                    species === "M. musculus" ? "#dd6b20" :   // orange
+                                               "#4a5568";    // fallback (grey)
+
+                // Initialize Cytoscape
+                cytoscape({
+                    container: networkContainer,
+                    elements: elements,
+                    style: [
+                        {
+                            selector: 'node',
+                            style: {
+                                'label': 'data(label)',
+                                'text-valign': 'center',
+                                'text-halign': 'center',
+                                'font-size': 5,
+                                'background-color': nodeColor,
+                                'border-width': 1,
+                                'border-color': '#1a202c'
+                            }
+                        },
+                        {
+                            selector: 'node[is_central = "true"]',
+                            style: {
+                                'background-color': '#e53e3e'   // nice red
+                            }
+                        },
+                        // macroscopic: round-rectangle
+                        {
+                            selector: 'node[molecule_type = "macroscopic"]',
+                            style: { 'shape': 'round-rectangle' }
+                        },
+                        // molecule: hexagon
+                        {
+                            selector: 'node[molecule_type = "molecule"]',
+                            style: { 'shape': 'hexagon' }
+                        },
+                        // protein-coding: ellipse
+                        {
+                            selector: 'node[molecule_type = "protein-coding"]',
+                            style: { 'shape': 'ellipse' }
+                        },
+                        {
+                            selector: 'edge',
+                            style: {
+                                'width': 'mapData(score, 0, 0.5, 0.3, 1)',  // edge width based on score
+                                'curve-style': 'bezier',
+                                'line-color': '#000000',          // black edges
+                                'opacity': 0.85,
+                                'target-arrow-shape': 'triangle', // show direction
+                                'target-arrow-color': '#000000',  // black arrow
+                                'arrow-scale': 1
+                            }
+                        },
+                        {
+                            selector: 'edge[is_central > 0]',
+                            style: {
+                                'line-color': '#e53e3e',
+                                'target-arrow-color': '#e53e3e'
+                            }
+                        }
+                    ],
+                    layout: {
+                        name: 'cose'
+                    }
+                });
+            });
+        });
+
+        // Click: back to results
+        backButton.addEventListener("click", function () {
+            networkView.style.display = "none";
+            resultsView.style.display = "block";
+            networkContainer.innerHTML = "";
+        });
+    });
+    </script>
+</body>
+</html>

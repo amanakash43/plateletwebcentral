@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plateletweb central</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="header">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo">
+            <h1>Plateletweb central - Systems Biology Workbench</h1>
+        </div>
+        <div class="user-info">
+            <span>Plateletweb</span>
+        </div>
+    </header>
+
+    <!-- Horizontal Navigation Bar -->
+    <nav class="nav-horizontal">
+        <ul>
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('central_cascade_page', species='H. sapiens') }}">Central Cascade for Humans</a></li>
+            <li><a href="{{ url_for('central_cascade_page', species='M. musculus') }}">Central Cascade for Mouse</a></li>
+            <li><a href="{{ url_for('network_extraction') }}">View Subnetwork</a></li>
+            <li><a href="{{ url_for('publications') }}">Publications</a></li>
+            <li><a href="#tutorial">Tutorial</a></li>
+            <li><a href="#contact">Contact</a></li>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="container">
+        <!-- Main Content Area -->
+    <div class="container">
+        <!-- Left Sidebar with Search -->
+        <aside class="sidebar">
+        <!-- first search plateletweb -->
+        <div class="search-section">
+            <h3>Search</h3>
+            <form method="GET" action="{{ url_for('legacy_search') }}" class="search-form legacy-search">
+                <input type="text" name="legacy" placeholder="Search plateletweb" />
+                <button type="submit">Search</button>
+            </form>
+        </div>
+
+        <!-- advanced search option -->
+        <div class="search-section">
+            <h3>Advanced Search</h3>
+            <form action=" {{ url_for('advanced_search') }} ">
+                <p style="font-size:10pt">Seach using protein identifiers and other characteristics.</p><br>
+                <button >🔍 Advanced Search</button>
+            </form>
+            </div>
+        <!-- then central cascade search -->
+        
+            <div class="search-section">
+                <h3>Central Cascade Search</h3>
+                <form method="POST">
+                    <input type="text" id = "gene_symbol" name="gene_symbol" placeholder="eg., VASP" value="{{ gene_symbol_query or '' }}" required>
+                    <!-- Adding species option -->
+                    <div>
+                    
+                        <b>Select Species:</b><br>
+                        {% for sp in species_options %}
+                            <label style="display: block;">
+                            <input
+                                type="checkbox"
+                                name="species_filter"
+                                value="{{ sp }}"
+                                {% if selected_species and sp in selected_species %}checked{% endif %}
+                            >
+                            {{ sp }}
+                            </label>
+                        {% endfor %}
+                        </div>
+                        <br>
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </aside>
+        <main class="main-content">
+            <h2 class="highlight-header">Tutorial</h2><br>
+            <p style="justify-content: space-evenly;">PlateletWeb is a bioinformatics knowledge base covering the platelet proteome, phosphoproteome, kinome, 
+                transcriptome and interactome. By combining data of published platelet proteome and transcriptome studies 
+                with comprehensive protein-protein interaction data a first model of the platelet interactome has been derived. 
+                PlateletWeb makes this platelet interactome accessible to all researchers and allows an easy navigation through 
+                the web of platelet interactions. Additional information about the type of evidence (proteome, transcriptome or both) 
+                for each protein is provided. Based on the data of a recent phosphoproteome study the type of phosphorylation 
+                (serine/threonine, tyrosine) is indicated by an icon on the right side.</p><br>
+            <h3 class="highlight-header">Search for a specific protein</h3><br>
+            <p style="justify-content: center;">Searching for a specific protein is easy: Simply enter the name of the protein or a part of the name (at least three characters)
+                 into the search field and submit your query. You will obtain a list of all proteins matching your query term. If the 
+                 query term is too general it will produce too many (>50) matches. In this case no results will be returned and you will be 
+                 asked to refine your search.</p><br>
+            <h3 class="highlight-header">PlateletWeb Central Cascade</h3><br>
+            <p style="justify-content: center;">The central cascade search allows you to explore the platelet interactome which contain 1st and 2nd degree interactions from
+                human and mouse platelet central cascade derived from detailed transcriptomics analysis.</p><br>
+                <h3 class="highlight-header">Central Cascade Search</h3><br>
+            <p style="justify-content: center;">Search the central cascade interaction using protein symbols. All the interactions will be displayed in the result table with some 
+                protein information and predicted score. The specific interactions for that protein can be also seen by clicking on the view 
+                interactions button.</p><br>
+            <h3 class="highlight-header">Platelet interactome</h3><br>
+            <p style="justify-content: center;">The result list contains the name and a short description for each protein. The marker on the left side indicates whether the 
+                protein has been described on the level of the proteome, transcriptome or both. On the right hand side information about the 
+                phosphorylation status of each protein is provided. Most importantly the link beneath the protein description displays the 
+                number of platelet interaction partners. This allows an easy navigation through the platelet interactome. The protein
+                description page can be reached by clicking on the gene symbol.</p><br>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plateletweb central</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+</head>
+
+<body>
+  <!-- Header Section -->
+  <header class="header">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo">
+      <h1>Plateletweb central - Systems Biology Workbench</h1>
+    </div>
+    <div class="user-info">
+      <span><a href="https://plateletweb.bioapps.biozentrum.uni-wuerzburg.de/plateletweb.php" target="_blank">PlateletWeb Old</a></span>
+    </div>
+  </header>
+
+  <!-- Horizontal Navigation Bar -->
+  <nav class="nav-horizontal">
+    <ul>
+      <li><a href="{{ url_for('index') }}">Home</a></li>
+        <li><a href="#tutorial">Tutorial</a></li>
+        <li><a href="{{ url_for('network_extraction') }}">Network Extraction</a></li>
+        <li><a href="{{ url_for('publications') }}">Publications</a></li>
+        <li><a href="{{ url_for('central_cascade_page', species='H. sapiens') }}">Central Cascade for Humans</a></li>
+        <li><a href="{{ url_for('central_cascade_page', species='M. musculus') }}">Central Cascade for Mouse</a></li>
+        <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Content Area -->
+  <div class="container">
+
+    <aside class="sidebar">
+      <!-- plateletweb search -->
+      <div class="search-section">
+        <h3>Search</h3>
+        <form method="GET" action="{{ url_for('legacy_search') }}" class="search-form legacy-search">
+          <input type="text" name="legacy" placeholder="Search plateletweb" />
+          <button type="submit">Search</button>
+        </form>
+      </div>
+
+      <!-- advanced search option -->
+      <div class="search-section">
+        <h3>Advanced Search</h3>
+        <form action="{{ url_for('advanced_search') }}">
+          <p style="font-size:10pt">Search using protein identifiers and other characteristics.</p><br>
+          <button type="submit">🔍 Advanced Search</button>
+        </form>
+      </div>
+
+      <!-- your existing central cascade search (optional) -->
+      <div class="search-section">
+        <h3>Central Cascade Search</h3>
+        <form method="POST" action="{{ url_for('index')}}">
+          <input type="text" id="gene_symbol" name="gene_symbol" placeholder="eg., VASP"
+                 value="{{ gene_symbol_query or '' }}" required>
+          <div>
+            <b>Select Species:</b><br>
+            {% for sp in species_options %}
+              <label style="display:block;">
+                <input type="checkbox" name="species_filter" value="{{ sp }}"
+                       {% if selected_species and sp in selected_species %}checked{% endif %}>
+                {{ sp }}
+              </label>
+            {% endfor %}
+          </div>
+          <br>
+          <button type="submit">Search</button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <h2><b>Central cascade network</b> — {{ species }}</h2>
+      
+      <div id="network-container"></div>
+
+      <script>
+        (async function () {
+        const pageSpecies = {{ species|tojson }};
+        const resp = await fetch(`/api/central-cascade/${encodeURIComponent(pageSpecies)}`);
+        const elements = await resp.json();
+
+        if (!resp.ok) {
+            console.error(elements);
+            alert("Failed to load network JSON");
+            return;
+        }
+
+        const cy = cytoscape({
+            container: document.getElementById("network-container"),
+            elements,
+
+            style: [
+            // ----- NODES (default) -----
+            {
+                selector: "node",
+                style: {
+                "label": "data(label)",
+                "text-valign": "center",
+                "text-halign": "center",
+                "font-size": 10,
+                "color": "#0f172a",
+                "border-width": 1,
+                "border-color": "#0f172a",
+
+                // size comes from centrality later
+                "width": "data(size)",
+                "height": "data(size)"
+                }
+            },
+
+            // ----- NODE COLORS + SHAPES by molecule_type -----
+            { selector: 'node[molecule_type = "protein-coding"]', style: { "background-color": "#83a7f7", "shape": "ellipse" } },
+            { selector: 'node[molecule_type = "molecule"]',       style: { "background-color": "#8ae3ab", "shape": "hexagon" } },
+            { selector: 'node[molecule_type = "macroscopic"]',    style: { "background-color": "#b497e6", "shape": "round-rectangle" } },
+            { selector: 'node[molecule_type = "unknown"]',        style: { "background-color": "#96b5e3", "shape": "diamond" } },
+
+            // ----- EDGES (default visible fallback) -----
+            {
+                selector: "edge",
+                style: {
+                "curve-style": "bezier",
+                "line-color": "#94a3b8",
+                "target-arrow-color": "#94a3b8",
+                "target-arrow-shape": "triangle",
+                "opacity": 0.9,
+                "width": 1
+                }
+            },
+
+            // central cascade edges (works even if 1/2)
+            { selector: "edge[is_central > 0]", style: { "line-color": "#f97316", "target-arrow-color": "#f97316", "width": 1.6 } },
+            { selector: "edge[is_central = 2]", style: { "line-color": "#dc2626", "target-arrow-color": "#dc2626", "width": 2.6 } }
+            ],
+
+            layout: {
+            name: "cose",
+            animate: true,
+            randomize: true,
+
+            nodeRepulsion: 8
+            }
+        });
+
+        // ----- CENTRALITY -----
+        // Degree (fast)
+        const degs = cy.nodes().map(n => n.degree());
+        const maxDeg = Math.max(1, ...degs);
+
+        cy.nodes().forEach(n => {
+            const d = n.degree();
+            n.data("degree", d);
+
+            // size range: 18..55
+            const size = 18 + (d / maxDeg) * 45;
+            n.data("size", size);
+        });
+
+        // Betweenness (slower on big networks)
+        const bc = cy.elements().betweennessCentrality({ directed: true });
+        cy.nodes().forEach(n => n.data("betweenness", bc.betweenness(n)));
+
+        // ----- FILTER TOGGLES (degree 1 / degree 2) -----
+        const cb1 = document.getElementById("show-degree-1");
+        const cb2 = document.getElementById("show-degree-2");
+
+        function applyEdgeFilter() {
+        const show1 = cb1.checked;
+        const show2 = cb2.checked;
+
+        // show/hide edges by value
+        cy.edges('[is_central = 1]').style("display", show1 ? "element" : "none");
+        cy.edges('[is_central = 2]').style("display", show2 ? "element" : "none");
+
+        // hide nodes that become isolated after filtering
+        cy.nodes().forEach(n => {
+            const visibleEdges = n.connectedEdges().filter(e => e.style("display") !== "none");
+            n.style("display", visibleEdges.length > 0 ? "element" : "none");
+        });
+
+        // re-run layout for nicer spacing after filtering
+        cy.layout({
+            name: "cose-bilkent",
+            animate: "end",
+            randomize: true,
+            nodeRepulsion: 12000,
+            idealEdgeLength: 120,
+            edgeElasticity: 0.25,
+            tilingPaddingVertical: 10,
+            tilingPaddingHorizontal: 10,
+            gravity: 0.2
+        }).run();
+        }
+
+        cb1.addEventListener("change", applyEdgeFilter);
+        cb2.addEventListener("change", applyEdgeFilter);
+
+        // Apply initial state
+        applyEdgeFilter();
+
+        // Show centrality on node click
+        cy.on("tap", "node", (evt) => {
+            const n = evt.target;
+            alert(
+            `${n.id()}\n` +
+            `molecule_type: ${n.data("molecule_type") || "unknown"}\n` +
+            `degree: ${n.data("degree")}\n` +
+            `betweenness: ${Number(n.data("betweenness")).toFixed(4)}`
+            );
+        });
+
+        // Optional: log counts to verify edges exist
+        console.log("nodes:", cy.nodes().length, "edges:", cy.edges().length);
+        })();
+    </script>
+    <label>
+        <input type="checkbox" id="show-degree-1" checked>
+        1st degree interactions
+        </label>
+        <label style="margin-left: 15px;">
+        <input type="checkbox" id="show-degree-2" checked>
+        2nd degree interactions
+      </label>
+      <div class="legend">
+        <div class="legend-title">Legend</div>
+
+        <div class="legend-grid">
+            <div class="legend-item">
+            <span class="swatch swatch-circle" style="background:#2563eb;"></span>
+            <span>protein-coding (ellipse)</span>
+            </div>
+
+            <div class="legend-item">
+            <span class="swatch swatch-hex" style="background:#16a34a;"></span>
+            <span>molecule (hexagon)</span>
+            </div>
+
+            <div class="legend-item">
+            <span class="swatch swatch-round-rect" style="background:#7c3aed;"></span>
+            <span>macroscopic (round-rectangle)</span>
+            </div>
+
+            <div class="legend-item">
+            <span class="edge-swatch" style="border-top-color:#f97316;"></span>
+            <span>1st degree interaction (is_central = 1)</span>
+            </div>
+
+            <div class="legend-item">
+            <span class="edge-swatch" style="border-top-color:#dc2626;"></span>
+            <span>2nd degree interaction (is_central = 2)</span>
+            </div>
+
+            <div class="legend-item">
+            <span class="swatch swatch-circle" style="background:#ffffff; border:2px solid #0f172a;"></span>
+            <span>Node size is based on degree centrality</span>
+            </div>
+        </div>
+        </div>
+    </main>
+
+  </div>
+
+</body>
+</html>
